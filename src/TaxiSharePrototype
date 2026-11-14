@@ -1,0 +1,50 @@
+package taxi;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class TaxiSharePrototype extends JFrame {
+
+    // 디자인 시스템 컬러 팔레트
+    public static final Color PRIMARY_BLUE = new Color(37, 83, 244);    
+    public static final Color BG_WHITE = Color.WHITE;
+    public static final Color BORDER_GRAY = new Color(224, 224, 224);
+    public static final Color TEXT_DARK = new Color(30, 30, 30);
+    public static final Color TEXT_GRAY = new Color(120, 120, 120);
+    public static final Color DISCOUNT_RED = new Color(225, 65, 45);
+    public static final Color DISCOUNT_BG = new Color(253, 237, 235);
+    public static final Color HERO_CIRCLE_BG = new Color(238, 242, 255);
+
+    private CardLayout cardLayout;
+    private JPanel mainContainer;
+
+    public TaxiSharePrototype() {
+        setTitle("택시 합승 어플리케이션 (프로토타입)");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(400, 820);
+        setResizable(false);
+        setLocationRelativeTo(null);
+
+        cardLayout = new CardLayout();
+        mainContainer = new JPanel(cardLayout);
+
+        // 각 개별 패널 클래스를 인스턴스화하여 카드에 등록
+        mainContainer.add(new LoginPanel(this), "LOGIN");
+        mainContainer.add(new SignupPanel(this), "SIGNUP");
+        mainContainer.add(new CallTaxiPanel(this), "CALL");
+        mainContainer.add(new PaymentCompletePanel(this), "PAYMENT");
+
+        add(mainContainer);
+        cardLayout.show(mainContainer, "LOGIN");
+    }
+
+    public void showScreen(String screenName) {
+        cardLayout.show(mainContainer, screenName);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new TaxiSharePrototype().setVisible(true);
+        });
+    }
+}
