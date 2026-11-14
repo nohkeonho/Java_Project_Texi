@@ -1,0 +1,95 @@
+package taxi;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+public class LoginPanel extends JPanel {
+    
+    public LoginPanel(TaxiSharePrototype mainFrame) {
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setBackground(TaxiSharePrototype.BG_WHITE);
+        setBorder(new EmptyBorder(45, 28, 30, 28));
+
+        // 상단 원형 타이틀 배너
+        JPanel circleBanner = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(TaxiSharePrototype.HERO_CIRCLE_BG);
+                int size = 250;
+                g2.fillOval((getWidth() - size) / 2, 10, size, size);
+                g2.dispose();
+            }
+        };
+        circleBanner.setLayout(new BoxLayout(circleBanner, BoxLayout.Y_AXIS));
+        circleBanner.setOpaque(false);
+        circleBanner.setPreferredSize(new Dimension(340, 275));
+        circleBanner.setMaximumSize(new Dimension(340, 275));
+
+        circleBanner.add(Box.createVerticalStrut(75));
+        JLabel title1 = UIComponents.createLabel("오늘 밤,", 24, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        JLabel title2 = UIComponents.createLabel("같이 타면 반값", 24, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        JLabel sub1 = UIComponents.createLabel("같은 방향 이웃과", 13, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        JLabel sub2 = UIComponents.createLabel("택시비를 나눠요", 13, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+
+        title1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        title2.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sub1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sub2.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        circleBanner.add(title1);
+        circleBanner.add(Box.createVerticalStrut(4));
+        circleBanner.add(title2);
+        circleBanner.add(Box.createVerticalStrut(12));
+        circleBanner.add(sub1);
+        circleBanner.add(Box.createVerticalStrut(2));
+        circleBanner.add(sub2);
+
+        add(circleBanner);
+        add(Box.createVerticalStrut(30));
+
+        // 아이디 입력
+        JLabel idLabel = UIComponents.createLabel("아이디", 13, Font.BOLD, TaxiSharePrototype.TEXT_GRAY);
+        idLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(idLabel);
+        add(Box.createVerticalStrut(6));
+        add(new UIComponents.RoundedTextField("아이디를 입력하세요"));
+        add(Box.createVerticalStrut(18));
+
+        // 비밀번호 입력
+        JLabel pwLabel = UIComponents.createLabel("비밀번호", 13, Font.BOLD, TaxiSharePrototype.TEXT_GRAY);
+        pwLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(pwLabel);
+        add(Box.createVerticalStrut(6));
+        add(new UIComponents.RoundedTextField("비밀번호를 입력하세요"));
+        add(Box.createVerticalStrut(26));
+
+        // 로그인 버튼
+        UIComponents.RoundedButton loginBtn = new UIComponents.RoundedButton("로그인", TaxiSharePrototype.PRIMARY_BLUE, Color.WHITE);
+        loginBtn.addActionListener(e -> mainFrame.showScreen("CALL"));
+        add(loginBtn);
+        add(Box.createVerticalStrut(18));
+
+        // 하단 회원가입 링크
+        JPanel bottomLinkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        bottomLinkPanel.setOpaque(false);
+        bottomLinkPanel.setMaximumSize(new Dimension(350, 30));
+        bottomLinkPanel.add(UIComponents.createLabel("아직 계정이 없나요?", 12, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY));
+
+        JLabel signupLink = UIComponents.createLabel("회원가입", 12, Font.BOLD, TaxiSharePrototype.PRIMARY_BLUE);
+        signupLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        signupLink.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                mainFrame.showScreen("SIGNUP");
+            }
+        });
+        bottomLinkPanel.add(signupLink);
+        add(bottomLinkPanel);
+    }
+}
