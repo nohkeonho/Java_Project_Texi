@@ -1,0 +1,131 @@
+package taxi;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+public class PaymentCompletePanel extends JPanel {
+    private int currentRating = 0;
+    private JLabel[] stars = new JLabel[5];
+
+    public PaymentCompletePanel(TaxiSharePrototype mainFrame) {
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setBackground(TaxiSharePrototype.BG_WHITE);
+        setBorder(new EmptyBorder(65, 28, 30, 28));
+
+        JPanel checkIconPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int size = 68;
+                int x = (getWidth() - size) / 2;
+                g2.setColor(TaxiSharePrototype.PRIMARY_BLUE);
+                g2.fillOval(x, 5, size, size);
+
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(4.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(x + 20, 40, x + 31, 51);
+                g2.drawLine(x + 31, 51, x + 49, 29);
+                g2.dispose();
+            }
+        };
+        checkIconPanel.setOpaque(false);
+        checkIconPanel.setMaximumSize(new Dimension(350, 80));
+        checkIconPanel.setPreferredSize(new Dimension(350, 80));
+        add(checkIconPanel);
+        add(Box.createVerticalStrut(18));
+
+        JLabel title = UIComponents.createLabel("결제되었습니다", 24, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        add(title);
+        add(Box.createVerticalStrut(8));
+
+        JLabel summary = UIComponents.createLabel("6,000원 · 선문대학교 → 천안터미널", 13, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        summary.setAlignmentX(Component.CENTER_ALIGNMENT);
+        add(summary);
+        add(Box.createVerticalStrut(42));
+
+        JLabel question = UIComponents.createLabel("이번 동승은 어떠셨나요?", 15, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        question.setAlignmentX(Component.CENTER_ALIGNMENT);
+        add(question);
+        add(Box.createVerticalStrut(14));
+
+        JPanel starPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        starPanel.setOpaque(false);
+        starPanel.setMaximumSize(new Dimension(350, 45));
+
+        for (int i = 0; i < 5; i++) {
+            final int ratingValue = i + 1;
+            JLabel star = new JLabel("☆");
+            star.setFont(new Font("SansSerif", Font.PLAIN, 34));
+            star.setForeground(TaxiSharePrototype.TEXT_GRAY);
+            star.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            star.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    setRating(ratingValue);
+                }
+            });
+            stars[i] = star;
+            starPanel.add(star);
+        }
+        add(starPanel);
+        add(Box.createVerticalStrut(8));
+
+        JLabel starHint = UIComponents.createLabel("별을 눌러 평가해 주세요", 12, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        starHint.setAlignmentX(Component.CENTER_ALIGNMENT);
+        add(starHint);
+        add(Box.createVerticalStrut(26));
+
+        JButton reportBtn = new JButton("⚑  신고하기") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(TaxiSharePrototype.BG_WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 40, 40);
+                g2.setColor(TaxiSharePrototype.BORDER_GRAY);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 40, 40);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        reportBtn.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        reportBtn.setForeground(TaxiSharePrototype.TEXT_DARK);
+        reportBtn.setContentAreaFilled(false);
+        reportBtn.setBorderPainted(false);
+        reportBtn.setFocusPainted(false);
+        reportBtn.setMaximumSize(new Dimension(155, 42));
+        reportBtn.setPreferredSize(new Dimension(155, 42));
+        reportBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        reportBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        reportBtn.addActionListener(e -> JOptionPane.showMessageDialog(this, "동승자 신고 접수 화면으로 이동합니다."));
+        add(reportBtn);
+
+        add(Box.createVerticalGlue());
+
+        UIComponents.RoundedButton doneBtn = new UIComponents.RoundedButton("완료", TaxiSharePrototype.PRIMARY_BLUE, Color.WHITE);
+        doneBtn.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "이용해 주셔서 감사합니다! (" + currentRating + "점 평가 완료)");
+            mainFrame.showScreen("LOGIN");
+        });
+        add(doneBtn);
+    }
+
+    private void setRating(int rating) {
+        this.currentRating = rating;
+        for (int i = 0; i < 5; i++) {
+            if (i < rating) {
+                stars[i].setText("★");
+                stars[i].setForeground(new Color(255, 193, 7));
+            } else {
+                stars[i].setText("☆");
+                stars[i].setForeground(TaxiSharePrototype.TEXT_GRAY);
+            }
+        }
+    }
+}
