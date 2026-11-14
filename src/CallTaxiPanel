@@ -1,0 +1,207 @@
+package taxi;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.geom.GeneralPath;
+
+public class CallTaxiPanel extends JPanel {
+    private int selectedPax = 1;
+    private JLabel priceLabel;
+    private JLabel saveInfoLabel;
+    private JToggleButton[] paxButtons = new JToggleButton[4];
+
+    public CallTaxiPanel(TaxiSharePrototype mainFrame) {
+        setLayout(new BorderLayout());
+        setBackground(TaxiSharePrototype.BG_WHITE);
+
+        // 상단 샘플 지도 및 경로 캔버스
+        SampleMapCanvas mapCanvas = new SampleMapCanvas();
+        mapCanvas.setLayout(null);
+
+        // 상단 출발지 -> 목적지 바
+        JPanel routeBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 12)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 40, 40);
+                g2.setColor(new Color(230, 230, 230));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 40, 40);
+                g2.dispose();
+            }
+        };
+        routeBar.setOpaque(false);
+        routeBar.setBounds(20, 18, 345, 46);
+
+        routeBar.add(UIComponents.createLabel("◉", 14, Font.BOLD, TaxiSharePrototype.PRIMARY_BLUE));
+        routeBar.add(UIComponents.createLabel("선문대학교", 14, Font.BOLD, TaxiSharePrototype.TEXT_DARK));
+        routeBar.add(UIComponents.createLabel("→", 15, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY));
+        routeBar.add(UIComponents.createLabel("◉", 14, Font.BOLD, TaxiSharePrototype.TEXT_DARK));
+        routeBar.add(UIComponents.createLabel("천안터미널", 14, Font.BOLD, TaxiSharePrototype.TEXT_DARK));
+        mapCanvas.add(routeBar);
+
+        JLabel apiTag = new JLabel("지도 API 표시 영역 (샘플 경로)", SwingConstants.CENTER);
+        apiTag.setFont(new Font("맑은 고딕", Font.PLAIN, 11));
+        apiTag.setForeground(TaxiSharePrototype.TEXT_GRAY);
+        apiTag.setOpaque(true);
+        apiTag.setBackground(new Color(255, 255, 255, 220));
+        apiTag.setBounds(18, 360, 165, 24);
+        mapCanvas.add(apiTag);
+
+        add(mapCanvas, BorderLayout.CENTER);
+
+        // 하단 바텀시트
+        JPanel bottomSheet = new JPanel();
+        bottomSheet.setLayout(new BoxLayout(bottomSheet, BoxLayout.Y_AXIS));
+        bottomSheet.setBackground(TaxiSharePrototype.BG_WHITE);
+        bottomSheet.setBorder(new EmptyBorder(12, 24, 24, 24));
+
+        JPanel handleBar = new JPanel();
+        handleBar.setBackground(new Color(215, 215, 215));
+        handleBar.setMaximumSize(new Dimension(40, 4));
+        handleBar.setPreferredSize(new Dimension(40, 4));
+        handleBar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bottomSheet.add(handleBar);
+        bottomSheet.add(Box.createVerticalStrut(14));
+
+        JLabel paxTitle = UIComponents.createLabel("탑승 인원", 13, Font.BOLD, TaxiSharePrototype.TEXT_GRAY);
+        paxTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottomSheet.add(paxTitle);
+        bottomSheet.add(Box.createVerticalStrut(8));
+
+        JPanel paxGrid = new JPanel(new GridLayout(1, 4, 8, 0));
+        paxGrid.setOpaque(false);
+        paxGrid.setMaximumSize(new Dimension(350, 44));
+        paxGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        ButtonGroup paxGroup = new ButtonGroup();
+        for (int i = 0; i < 4; i++) {
+            int count = i + 1;
+            JToggleButton btn = new JToggleButton((i == 0 ? "☑ " : "☐ ") + count + "인");
+            btn.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+            btn.setFocusPainted(false);
+            btn.setBackground(i == 0 ? TaxiSharePrototype.HERO_CIRCLE_BG : TaxiSharePrototype.BG_WHITE);
+            btn.setForeground(i == 0 ? TaxiSharePrototype.PRIMARY_BLUE : TaxiSharePrototype.TEXT_DARK);
+            btn.setBorder(BorderFactory.createLineBorder(i == 0 ? TaxiSharePrototype.PRIMARY_BLUE : TaxiSharePrototype.BORDER_GRAY, 1, true));
+
+            btn.addActionListener(e -> updatePaxSelection(count));
+            paxButtons[i] = btn;
+            paxGroup.add(btn);
+            paxGrid.add(btn);
+        }
+        paxButtons[0].setSelected(true);
+        bottomSheet.add(paxGrid);
+        bottomSheet.add(Box.createVerticalStrut(18));
+
+        JPanel fareHeader = new JPanel(new BorderLayout());
+        fareHeader.setOpaque(false);
+        fareHeader.setMaximumSize(new Dimension(350, 26));
+        fareHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        fareHeader.add(UIComponents.createLabel("예상 요금", 13, Font.BOLD, TaxiSharePrototype.TEXT_GRAY), BorderLayout.WEST);
+
+        JLabel badge = new JLabel(" 합승 50% 할인 ");
+        badge.setFont(new Font("맑은 고딕", Font.BOLD, 11));
+        badge.setForeground(TaxiSharePrototype.DISCOUNT_RED);
+        badge.setOpaque(true);
+        badge.setBackground(TaxiSharePrototype.DISCOUNT_BG);
+        fareHeader.add(badge, BorderLayout.EAST);
+        bottomSheet.add(fareHeader);
+        bottomSheet.add(Box.createVerticalStrut(4));
+
+        JLabel originalPrice = new JLabel("<html><strike>12,000원</strike></html>");
+        originalPrice.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+        originalPrice.setForeground(TaxiSharePrototype.TEXT_GRAY);
+        originalPrice.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottomSheet.add(originalPrice);
+
+        JPanel finalPriceRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        finalPriceRow.setOpaque(false);
+        finalPriceRow.setMaximumSize(new Dimension(350, 42));
+        finalPriceRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        priceLabel = UIComponents.createLabel("6,000", 30, Font.BOLD, TaxiSharePrototype.DISCOUNT_RED);
+        JLabel wonLabel = UIComponents.createLabel("원", 16, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        finalPriceRow.add(priceLabel);
+        finalPriceRow.add(wonLabel);
+        bottomSheet.add(finalPriceRow);
+
+        saveInfoLabel = UIComponents.createLabel("1인 기준 · 6,000원 절약", 12, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        saveInfoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottomSheet.add(saveInfoLabel);
+        bottomSheet.add(Box.createVerticalStrut(18));
+
+        UIComponents.RoundedButton callBtn = new UIComponents.RoundedButton("택시 호출", TaxiSharePrototype.PRIMARY_BLUE, Color.WHITE);
+        callBtn.addActionListener(e -> mainFrame.showScreen("PAYMENT"));
+        bottomSheet.add(callBtn);
+
+        add(bottomSheet, BorderLayout.SOUTH);
+    }
+
+    private void updatePaxSelection(int count) {
+        selectedPax = count;
+        for (int i = 0; i < 4; i++) {
+            boolean isSel = (i + 1 == count);
+            paxButtons[i].setText((isSel ? "☑ " : "☐ ") + (i + 1) + "인");
+            paxButtons[i].setBackground(isSel ? TaxiSharePrototype.HERO_CIRCLE_BG : TaxiSharePrototype.BG_WHITE);
+            paxButtons[i].setForeground(isSel ? TaxiSharePrototype.PRIMARY_BLUE : TaxiSharePrototype.TEXT_DARK);
+            paxButtons[i].setBorder(BorderFactory.createLineBorder(isSel ? TaxiSharePrototype.PRIMARY_BLUE : TaxiSharePrototype.BORDER_GRAY, 1, true));
+        }
+        int totalPay = 6000 * count;
+        int totalSaved = 6000 * count;
+        priceLabel.setText(String.format("%,d", totalPay));
+        saveInfoLabel.setText(count + "인 기준 · " + String.format("%,d", totalSaved) + "원 절약");
+    }
+
+    // 샘플 지도 캔버스 내부 클래스
+    static class SampleMapCanvas extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setColor(new Color(242, 240, 232));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            g2.setColor(new Color(216, 232, 205));
+            g2.fillRoundRect(-10, 100, 75, 95, 16, 16);
+            g2.fillRoundRect(120, 195, 110, 80, 18, 18);
+            g2.fillRoundRect(325, 235, 80, 110, 18, 18);
+
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(75, 0, 110, 420);
+            g2.drawLine(250, 0, 260, 420);
+            g2.drawLine(310, 0, 300, 420);
+            g2.drawLine(0, 95, 400, 75);
+            g2.drawLine(0, 325, 130, 315);
+            g2.drawLine(130, 315, 400, 175);
+
+            GeneralPath routePath = new GeneralPath();
+            routePath.moveTo(85, 318);
+            routePath.quadTo(185, 255, 295, 188);
+            routePath.lineTo(308, 135);
+
+            g2.setColor(TaxiSharePrototype.PRIMARY_BLUE);
+            g2.setStroke(new BasicStroke(6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.draw(routePath);
+
+            g2.setColor(Color.WHITE);
+            g2.fillOval(63, 312, 24, 24);
+            g2.setColor(TaxiSharePrototype.PRIMARY_BLUE);
+            g2.setStroke(new BasicStroke(4f));
+            g2.drawOval(67, 316, 16, 16);
+
+            g2.setColor(Color.WHITE);
+            g2.fillOval(298, 112, 24, 24);
+            g2.setColor(TaxiSharePrototype.TEXT_DARK);
+            g2.setStroke(new BasicStroke(4f));
+            g2.drawOval(302, 116, 16, 16);
+
+            g2.dispose();
+        }
+    }
+}
