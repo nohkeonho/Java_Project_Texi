@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Texi (Eclipse 프로젝트) ###
+# DB 비밀번호가 들어 있으므로 절대 커밋하지 않는다
+Texi/db.properties
