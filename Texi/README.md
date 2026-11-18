@@ -1,6 +1,6 @@
-# Texi - 택시 합승 앱 DB / 로그인·회원가입 API
+# Texi - 택시 합승 앱 DB / 로그인·회원가입 / 평점·신고 API
 
-Java Swing 화면에서 사용하는 **MySQL DB 계층(DAO)** 과 **로그인·회원가입 API** 입니다.
+Java Swing 화면에서 사용하는 **MySQL DB 계층(DAO)**, **로그인·회원가입 API**, **평점·신고 API** 입니다.
 저장소 루트의 Spring Boot 프로젝트(`src/main/java`)와는 별개의 이클립스 Java 프로젝트입니다.
 
 ## 폴더 구성
@@ -16,14 +16,20 @@ Texi/
     │   ├─ AuthService.java      회원가입 / 로그인 / 이메일·닉네임 중복검사
     │   ├─ PasswordHasher.java   비밀번호 해시 (PBKDF2, 솔트 포함)
     │   └─ AuthException.java    화면에 보여줄 오류 메시지용 예외
+    ├─ service/               ★ 평점·신고 API
+    │   ├─ RatingService.java    평점 제출(1~5점, 미입력 시 건너뜀) / 평균 평점·개수 조회
+    │   └─ ReportService.java    신고 제출(내용 없으면 건너뜀)
     ├─ dao/                   SQL 실행 클래스 (MemberDAO, RideRequestDAO, RideMatchDAO, RatingDAO, ReportDAO)
     ├─ db/DBConnection.java   db.properties 를 읽어 MySQL 연결 생성
     ├─ model/                 테이블 한 행을 담는 클래스 (Member, RideRequest ...)
     ├─ DbSmokeTest.java       DB 연결 확인용 main
-    └─ AuthSmokeTest.java     회원가입·로그인 저장 확인용 main
+    ├─ AuthSmokeTest.java     회원가입·로그인 저장 확인용 main
+    └─ ReviewSmokeTest.java   평점·신고 저장 확인용 main
 ```
 
-구조: `Swing 화면 → AuthService(입력 규칙 검사) → MemberDAO(SQL) → MySQL member 테이블`
+구조:
+- `Swing 화면 → AuthService(입력 규칙 검사) → MemberDAO(SQL) → MySQL member 테이블`
+- `Swing 화면 → RatingService / ReportService(입력 규칙 검사) → RatingDAO / ReportDAO(SQL) → MySQL rating / report 테이블`
 
 ---
 
@@ -131,7 +137,61 @@ try {
 
 ---
 
-## 4. 자주 나는 오류
+## 4. 평점·신고 API
+
+### 4-1. 동작 확인
+`taxi/ReviewSmokeTest.java` 실행 → 마지막 줄이 `결과: 통과 12개 / 실패 0개` 이면 정상입니다.
+(테스트용 가상 회원 2명과 완료된 매칭 1건을 만든 뒤 평점·신고 규칙을 차례로 확인합니다.)
+
+```sql
+USE taxi_share;
+SELECT * FROM rating ORDER BY rating_id DESC LIMIT 5;
+SELECT * FROM report ORDER BY report_id DESC LIMIT 5;
+```
+
+> 실행할 때마다 가상 회원(`is_virtual = 1`) 2명과 매칭 1건이 쌓입니다. 실제 회원과는 `is_virtual` 로 구분됩니다.
+
+### 4-2. Swing 화면에 연결하기
+
+| 화면 동작 | 호출할 메서드 | 반환값 |
+|---|---|---|
+| 평점 제출 버튼 | `ratingService.submit(matchId, raterId, rateeId, score)` | 저장하면 `true`, `score` 가 `null` 이면 건너뛰고 `false` |
+| 신고 제출 버튼 | `reportService.submit(matchId, reporterId, reportedId, detail)` | 저장하면 `true`, 내용이 비었으면 건너뛰고 `false` |
+| 평균 평점 표시 | `ratingService.getAverageRating(memberId)` / `getRatingCount(memberId)` | 평균(0.0~5.0) / 받은 개수 |
+
+```java
+import java.sql.SQLException;
+import taxi.service.RatingService;
+import taxi.service.ReportService;
+
+RatingService ratingService = new RatingService();
+ReportService reportService = new ReportService();
+
+try {
+    // selectedScore: 선택 안 했으면 null (Integer 타입)
+    ratingService.submit(matchId, myId, partnerId, selectedScore);
+    // 빈칸이면 알아서 건너뜀
+    reportService.submit(matchId, myId, partnerId, reportArea.getText());
+} catch (IllegalArgumentException | IllegalStateException e) {
+    JOptionPane.showMessageDialog(this, e.getMessage());   // 사용자에게 보여줄 안내
+} catch (SQLException e) {
+    JOptionPane.showMessageDialog(this, "서버(DB) 연결에 문제가 생겼습니다.");
+}
+```
+
+### 4-3. 규칙
+
+| 항목 | 규칙 |
+|---|---|
+| 평점 | 1~5점 정수 (0.5점 없음). 미입력(`null`)이면 저장하지 않고 넘어감. 저장 시 받은 사람의 평균 평점·개수 자동 갱신 |
+| 신고 | 내용이 비었거나 공백뿐이면 저장하지 않고 넘어감. 1000자 이하. 사유는 `OTHER`(기타)로 저장 (사유를 받는 `submit(..., Report.Reason, detail)` 도 있음) |
+| 공통 | **완료(`COMPLETED`)된 매칭**에 함께 탄 사람끼리만 가능. 자기 자신 불가. 같은 매칭에서 같은 사람에게 중복 불가 |
+
+오류 종류: 잘못된 값 → `IllegalArgumentException`, 중복·완료 전 매칭 → `IllegalStateException`, DB 문제 → `SQLException`
+
+---
+
+## 5. 자주 나는 오류
 
 | 증상 | 원인 / 해결 |
 |---|---|
