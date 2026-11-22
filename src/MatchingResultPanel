@@ -1,0 +1,156 @@
+package taxi;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.geom.GeneralPath;
+
+public class MatchingResultPanel extends JPanel {
+    private JLabel statusTitleLabel;
+    private JLabel statusDescLabel;
+    private JLabel partnerNameLabel, partnerStyleLabel;
+    private JPanel partnerInfoCard;
+    private UIComponents.RoundedButton actionBtn;
+    private TaxiSharePrototype mainFrameRef;
+
+    private boolean isMatched = false; // 테스트용 매칭 상태값 (추후 소켓/DB 연동 시 제어)
+
+    public MatchingResultPanel(TaxiSharePrototype mainFrame) {
+        this.mainFrameRef = mainFrame;
+        setLayout(new BorderLayout());
+        setBackground(TaxiSharePrototype.BG_WHITE);
+
+        // 상단: 미니 지도 / 경로 시각화 영역 (기존 CallTaxiPanel 스타일 계승)
+        MatchingMapCanvas mapCanvas = new MatchingMapCanvas();
+        mapCanvas.setLayout(null);
+        add(mapCanvas, BorderLayout.CENTER);
+
+        // 하단: 매칭 상태 및 동승자 정보 바텀시트
+        JPanel bottomSheet = new JPanel();
+        bottomSheet.setLayout(new BoxLayout(bottomSheet, BoxLayout.Y_AXIS));
+        bottomSheet.setBackground(TaxiSharePrototype.BG_WHITE);
+        bottomSheet.setBorder(new EmptyBorder(12, 24, 24, 24));
+
+        JPanel handleBar = new JPanel();
+        handleBar.setBackground(new Color(215, 215, 215));
+        handleBar.setMaximumSize(new Dimension(40, 4));
+        handleBar.setPreferredSize(new Dimension(40, 4));
+        handleBar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bottomSheet.add(handleBar);
+        bottomSheet.add(Box.createVerticalStrut(16));
+
+        // 상태 타이틀 (매칭 중 vs 매칭 완료)
+        statusTitleLabel = UIComponents.createLabel("주변 이웃을 찾는 중입니다...", 20, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        statusTitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottomSheet.add(statusTitleLabel);
+        bottomSheet.add(Box.createVerticalStrut(4));
+
+        statusDescLabel = UIComponents.createLabel("같은 방향으로 가는 동승자를 매칭하고 있어요", 13, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        statusDescLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottomSheet.add(statusDescLabel);
+        bottomSheet.add(Box.createVerticalStrut(20));
+
+        // 동승자 프로필 카드 (매칭 완료 시에만 활성화/노출)
+        partnerInfoCard = new JPanel();
+        partnerInfoCard.setLayout(new BoxLayout(partnerInfoCard, BoxLayout.Y_AXIS));
+        partnerInfoCard.setBackground(new Color(248, 249, 252));
+        partnerInfoCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TaxiSharePrototype.BORDER_GRAY, 1, true),
+                new EmptyBorder(16, 16, 16, 16)
+        ));
+        partnerInfoCard.setMaximumSize(new Dimension(350, 95));
+        partnerInfoCard.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JPanel partnerHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        partnerHeader.setOpaque(false);
+        partnerHeader.setMaximumSize(new Dimension(320, 24));
+        
+        JLabel iconLbl = UIComponents.createLabel("👤", 14, Font.PLAIN, TaxiSharePrototype.TEXT_DARK);
+        partnerNameLabel = UIComponents.createLabel("매칭 대기 중...", 14, Font.BOLD, TaxiSharePrototype.TEXT_DARK);
+        partnerHeader.add(iconLbl);
+        partnerHeader.add(partnerNameLabel);
+        partnerInfoCard.add(partnerHeader);
+        partnerInfoCard.add(Box.createVerticalStrut(8));
+
+        partnerStyleLabel = UIComponents.createLabel("스쳐 지나가는 바람처럼 고요하게...", 12, Font.PLAIN, TaxiSharePrototype.TEXT_GRAY);
+        partnerStyleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        partnerInfoCard.add(partnerStyleLabel);
+
+        // 초기에는 매칭 대기 중이므로 카드 숨김 또는 비활성 처리 가능
+        partnerInfoCard.setVisible(false);
+        bottomSheet.add(partnerInfoCard);
+        bottomSheet.add(Box.createVerticalStrut(20));
+
+        // 하단 제어 버튼 (매칭 취소 또는 결제/탑승으로 이동)
+        actionBtn = new UIComponents.RoundedButton("매칭 취소하기", new Color(240, 240, 240), TaxiSharePrototype.TEXT_DARK);
+        actionBtn.addActionListener(e -> {
+            if (!isMatched) {
+                // 매칭 취소 시 호출 화면으로 복귀
+                mainFrame.showScreen("CALL");
+            } else {
+                // 매칭 완료 후 결제 완료 화면으로 이동
+                mainFrame.showScreen("PAYMENT");
+            }
+        });
+        bottomSheet.add(actionBtn);
+
+        add(bottomSheet, BorderLayout.SOUTH);
+    }
+
+    // 소켓 통신이나 타이머로 매칭 성사 시 호출하여 UI를 업데이트하는 메서드
+    public void updateMatchCompleteState(String partnerId, String partnerStyle) {
+        isMatched = true;
+        statusTitleLabel.setText("동승 매칭이 완료되었습니다!");
+        statusDescLabel.setText("택시가 배차되었습니다. 기사님과 이웃을 확인하세요.");
+        
+        partnerNameLabel.setText("매칭된 이웃: " + partnerId + " 님");
+        partnerStyleLabel.setText("\" " + partnerStyle + " \"");
+        partnerInfoCard.setVisible(true);
+
+        actionBtn.setText("결제 및 탑승 완료하기");
+        actionBtn.setBackground(TaxiSharePrototype.PRIMARY_BLUE);
+        actionBtn.setForeground(Color.WHITE);
+        revalidate();
+        repaint();
+    }
+
+    // 상단 지도 영역 시각화 컴포넌트
+    static class MatchingMapCanvas extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setColor(new Color(242, 240, 232));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            // 주변 건물/블록 표현
+            g2.setColor(new Color(216, 232, 205));
+            g2.fillRoundRect(30, 80, 80, 100, 16, 16);
+            g2.fillRoundRect(220, 150, 120, 90, 18, 18);
+
+            // 도로망
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(0, 120, 400, 150);
+            g2.drawLine(150, 0, 180, 400);
+
+            // 탐색 반경 애니메이션 효과를 주는 원형 레이더 라인 (대기 중 느낌 연출)
+            g2.setColor(new Color(37, 83, 244, 40));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawOval(120, 140, 160, 160);
+            g2.drawOval(80, 100, 240, 240);
+
+            // 내 위치 핀
+            g2.setColor(TaxiSharePrototype.PRIMARY_BLUE);
+            g2.fillOval(192, 212, 16, 16);
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawOval(192, 212, 16, 16);
+
+            g2.dispose();
+        }
+    }
+}
+
