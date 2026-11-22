@@ -1,0 +1,23 @@
+package taxi;
+
+public class FeeCalculator {
+    // 기준이 되는 총 택시비 
+    private static final int STANDARD_TOTAL_FARE = 12000;
+
+    public static int calculateStaticFare(int pax) {
+        if (pax <= 0) return STANDARD_TOTAL_FARE;
+        
+        return STANDARD_TOTAL_FARE / pax;
+    }
+
+    public static int calculateFareByDistance(double distanceKm, int pax) {
+        int totalFare = (int) (distanceKm * 2500); 
+        if (totalFare < 12000) {
+            totalFare = 12000;
+        }
+
+        if (pax <= 0) return totalFare;
+
+        return totalFare / pax;
+    }
+}
