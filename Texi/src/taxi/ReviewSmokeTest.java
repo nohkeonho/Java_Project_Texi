@@ -54,6 +54,9 @@ public class ReviewSmokeTest {
         long stamp = System.currentTimeMillis();
         long memberA = memberDAO.insert(newMember("a" + stamp));
         long memberB = memberDAO.insert(newMember("b" + stamp));
+        // 합승 요청은 위치정보에 동의한 회원만 할 수 있으므로(RideRequestDAO), 두 사람 모두 동의 처리
+        memberDAO.agreeLocation(memberA);
+        memberDAO.agreeLocation(memberB);
         long requestA = requestDAO.insert(newRequest(memberA));
         long requestB = requestDAO.insert(newRequest(memberB));
 

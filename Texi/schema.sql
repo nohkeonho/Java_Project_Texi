@@ -8,6 +8,8 @@
 --  * 위도/경도는 DECIMAL(9,6) (소수점 6자리 = 약 10cm 정밀도)
 --  * 계획서의 개인정보 대책: 정확한 주소는 저장하지 않고 "00편의점 앞" 같은
 --    장소 이름(구역)과 좌표만 저장한다.
+--  * 동성 합승만 허용한다. (계획서: 여객자동차 운수사업법령상 동성 합승 요건)
+--    요청마다 동성/혼성을 고르는 칸은 없고, 매칭할 때 member.gender 를 비교한다.
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS taxi_share
@@ -33,7 +35,7 @@ CREATE TABLE member (
     email               VARCHAR(100)    NOT NULL,                -- 로그인 ID로 사용
     password_hash       VARCHAR(255)    NOT NULL,                -- 비밀번호 원문 저장 금지! 해시값만 저장
     nickname            VARCHAR(30)     NOT NULL,                -- 매칭 상대에게 보이는 이름 (실명 노출 방지)
-    gender              ENUM('M','F')   NOT NULL,                -- 동성 합승 조건용 (법령 확인 후 필요 없으면 삭제)
+    gender              ENUM('M','F')   NOT NULL,                -- 동성 합승 매칭에 사용 (같은 성별끼리만 매칭)
     location_agreed_at  DATETIME        NULL,                    -- 위치정보 수집·이용 동의 시각 (NULL이면 미동의)
     is_virtual          TINYINT(1)      NOT NULL DEFAULT 0,      -- 1이면 시뮬레이터용 가상 사용자
     avg_rating          DECIMAL(3,2)    NOT NULL DEFAULT 0.00,   -- 평균 평점 (매칭 점수에 사용, 조회 속도용 저장값)
@@ -68,9 +70,8 @@ CREATE TABLE ride_request (
     depart_from     DATETIME        NOT NULL,                    -- 가장 이른 출발 시각
     depart_until    DATETIME        NOT NULL,                    -- 가장 늦은 출발 시각
 
-    -- 매칭 조건
+    -- 매칭 조건 (성별 조건은 요청이 아니라 member.gender 로 판단한다)
     max_detour_m    INT             NOT NULL DEFAULT 2000,       -- 우회 거리 허용치 (m) (계획서: 우회 거리 허용치)
-    same_gender_only TINYINT(1)     NOT NULL DEFAULT 1,          -- 1이면 동성끼리만 매칭
 
     -- 지도 API로 계산한 값 (혼자 탔을 때 기준)
     est_distance_m  INT             NULL,                        -- 예상 이동 거리 (m)
@@ -110,6 +111,7 @@ CREATE TABLE ride_match (
 -- 3-1. 매칭 참여자 (match_member)
 --    회원 ↔ 매칭은 다대다(N:M) 관계라서 중간 테이블이 필요하다.
 --    한 매칭에 2명 이상이 참여하고, 사람마다 점수·요금·내리는 순서가 다르다.
+--    한 매칭의 참여자는 모두 같은 성별이어야 한다. (RideMatchDAO.createMatch 가 저장 전에 검사)
 -- ---------------------------------------------------------------------
 CREATE TABLE match_member (
     match_member_id BIGINT          NOT NULL AUTO_INCREMENT,
@@ -192,14 +194,18 @@ CREATE TABLE report (
 -- [자주 쓰게 될 쿼리 예시]  (실행하려면 주석 기호 -- 를 지우세요)
 -- =====================================================================
 
--- (1) 매칭 후보 찾기: 내 요청과 출발 시간대가 겹치는 "대기중" 요청 (내 요청 id = 1 이라고 가정)
+-- (1) 매칭 후보 찾기: 내 요청과 출발 시간대가 겹치고, 나와 성별이 같은 회원의 "대기중" 요청
+--     (내 요청 id = 1 이라고 가정)
 -- SELECT o.*
 --   FROM ride_request me
+--   JOIN member mm ON mm.member_id = me.member_id
 --   JOIN ride_request o
 --     ON o.status = 'WAITING'
 --    AND o.request_id <> me.request_id
 --    AND o.depart_from  <= me.depart_until   -- 시간 범위가 겹치는 조건
 --    AND o.depart_until >= me.depart_from
+--   JOIN member om ON om.member_id = o.member_id
+--    AND om.gender = mm.gender               -- 동성 합승만 허용
 --  WHERE me.request_id = 1;
 
 -- (2) 평점을 받은 뒤 회원의 평균 평점 갱신 (평점 INSERT와 같은 트랜잭션으로 실행)

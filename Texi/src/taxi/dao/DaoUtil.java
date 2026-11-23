@@ -57,4 +57,20 @@ final class DaoUtil {
     static Timestamp toTimestamp(LocalDateTime time) {
         return (time == null) ? null : Timestamp.valueOf(time);
     }
+
+    /**
+     * IN ( ?, ?, ? ) 처럼 개수가 정해지지 않은 자리표시자를 만든다.
+     * 예) placeholders(3) -> "?, ?, ?"
+     * 값을 문자열로 직접 이어 붙이지 않고 ? 를 쓰기 때문에 SQL 인젝션에 안전하다.
+     */
+    static String placeholders(int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append('?');
+        }
+        return sb.toString();
+    }
 }
