@@ -10,6 +10,7 @@ public class RideMatch {
 
     private long matchId;
     private Status status = Status.PROPOSED;
+    private Double matchScore;        // 이 팀 조합 전체의 매칭 점수 (0~100), 계산 전이면 null
     private Integer totalDistanceM;   // 택시 총 이동 거리(m), 아직 계산 전이면 null
     private Integer totalFare;        // 택시 총 예상 요금(원)
     private LocalDateTime createdAt;
@@ -19,6 +20,8 @@ public class RideMatch {
     public void setMatchId(long matchId) { this.matchId = matchId; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+    public Double getMatchScore() { return matchScore; }
+    public void setMatchScore(Double matchScore) { this.matchScore = matchScore; }
     public Integer getTotalDistanceM() { return totalDistanceM; }
     public void setTotalDistanceM(Integer totalDistanceM) { this.totalDistanceM = totalDistanceM; }
     public Integer getTotalFare() { return totalFare; }
@@ -30,6 +33,7 @@ public class RideMatch {
 
     @Override
     public String toString() {
-        return "RideMatch{id=" + matchId + ", status=" + status + ", totalFare=" + totalFare + "}";
+        return "RideMatch{id=" + matchId + ", status=" + status + ", score=" + matchScore
+                + ", totalFare=" + totalFare + "}";
     }
 }

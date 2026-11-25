@@ -55,7 +55,7 @@ MySQL Workbench 에서 `schema.sql` 을 열고 전체 실행(⚡)합니다.
 
 ### 1-4. 동작 확인
 1. `taxi/DbSmokeTest.java` 실행 → `연결 성공! DB: taxi_share` 출력 확인
-2. `taxi/AuthSmokeTest.java` 실행 → 아래처럼 나오면 회원가입·로그인 데이터가 DB에 저장되는 것
+2. `Login_API/AuthSmokeTest.java` 실행 → 아래처럼 나오면 회원가입·로그인 데이터가 DB에 저장되는 것
 
 ```
 1) 이메일 사용 가능? true
@@ -91,8 +91,8 @@ SELECT member_id, email, nickname, status, created_at, LEFT(password_hash, 30) A
 모든 메서드는 실패하면 `AuthException` 을 던지고, `getMessage()` 에 화면에 그대로 보여줄 문구가 들어 있습니다.
 
 ```java
-import taxi.auth.AuthException;
-import taxi.auth.AuthService;
+import Login_API.auth.AuthException;
+import Login_API.auth.AuthService;
 import taxi.model.Member;
 
 AuthService auth = new AuthService();
@@ -198,5 +198,5 @@ try {
 | `db.properties 파일을 읽을 수 없습니다` | `Texi` 폴더에 `db.properties` 가 없거나 실행 작업 폴더가 다름 (1-3 참고) |
 | `서버(DB) 연결에 문제가 발생했습니다` | `AuthSmokeTest` 콘솔에 원인 출력. `Access denied` → 계정/비밀번호, `Unknown database` → `schema.sql` 미실행 |
 | `No suitable driver found` | MySQL 드라이버 jar 가 Build Path 에 없음 (1-2 의 3번) |
-| `The declared package "taxi.auth" does not match ...` | 파일 위치가 `src/taxi/auth/` 가 아님. 패키지 이름과 폴더 경로가 같아야 함 |
+| `The declared package "Login_API.auth" does not match ...` | 파일 위치가 `src/Login_API/auth/` 가 아님. 패키지 이름과 폴더 경로가 같아야 함 |
 | `MemberDAO cannot be resolved` | `auth` 폴더를 별도 프로젝트에 넣음. 같은 `Texi` 프로젝트의 `src/taxi/` 안에 있어야 함 |

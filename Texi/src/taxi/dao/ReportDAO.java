@@ -52,6 +52,15 @@ public class ReportDAO {
         }
     }
 
+    /**
+     * 번호로 신고 한 건 찾기. 없으면 null.
+     * (관리자가 신고를 반려/처리할 때, 신고당한 사람이 누구인지 알아내는 데 쓴다)
+     */
+    public Report findById(long reportId) throws SQLException {
+        List<Report> list = findList("SELECT * FROM report WHERE report_id = ?", reportId);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
     /** 어떤 회원이 신고당한 내역 (최신순). */
     public List<Report> findByReportedId(long reportedId) throws SQLException {
         return findList("SELECT * FROM report WHERE reported_id = ? ORDER BY created_at DESC", reportedId);
@@ -65,7 +74,9 @@ public class ReportDAO {
     /**
      * 어떤 회원이 신고당한 횟수.
      * "처리 결과가 반려(REJECTED)된 신고"는 제외하고 센다. 억울한 신고로 이용정지되는 것을 막기 위해서다.
-     * 예) if (reportDAO.countAgainst(id) >= 3) memberDAO.updateStatus(id, Member.Status.SUSPENDED);
+     * 참고: 이용정지 판단은 이 메서드가 아니라 ReportPenaltyService 가 한다.
+     *       (그쪽은 같은 사람의 신고를 1명으로 세고, 정지와 요청 취소를 한 트랜잭션으로 처리한다)
+     *       이 메서드는 "신고 접수 건수" 자체를 화면에 보여 줄 때 쓴다.
      */
     public int countAgainst(long reportedId) throws SQLException {
         String sql = "SELECT COUNT(*) FROM report WHERE reported_id = ? AND status <> 'REJECTED'";

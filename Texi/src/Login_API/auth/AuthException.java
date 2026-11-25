@@ -1,4 +1,4 @@
-package taxi.auth;
+package Login_API.auth;
 
 /**
  * 회원가입/로그인 중 "사용자에게 보여줄 오류 메시지"를 담아 던지는 예외.
